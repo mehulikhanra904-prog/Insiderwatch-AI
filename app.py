@@ -3,8 +3,8 @@ import pandas as pd
 import numpy as np
 import plotly.express as px
 
-from sklearn.ensemble import IsolationForest
 from pathlib import Path
+from detection import DataValidationError, evaluate_predictions, load_activity_data, run_detection
 
 # ---------------- PAGE CONFIG ----------------
 
@@ -46,25 +46,35 @@ if not DATA_FILE.exists():
     st.info("Place activity_data.csv in the same folder as app.py.")
     st.stop()
 
-df = pd.read_csv(DATA_FILE)
+uploaded_file = st.sidebar.file_uploader(
+    "Try your own activity CSV (optional)",
+    type=["csv"],
+    help="The CSV must contain the seven required columns listed in the README."
+)
 
-required_columns = [
-    "user_id",
-    "hour",
-    "files_accessed",
-    "data_downloaded_mb",
-    "failed_logins",
-    "login_attempts",
-    "synthetic_label"
-]
+if uploaded_file is not None:
+    data_source = uploaded_file
+    source_name = uploaded_file.name
+else:
+    data_source = DATA_FILE
+    source_name = DATA_FILE.name
 
-missing = [c for c in required_columns if c not in df.columns]
-
-if missing:
-    st.error(f"Missing required columns: {missing}")
+if uploaded_file is None and not DATA_FILE.exists():
+    st.error("activity_data.csv was not found in the project directory.")
+    st.info("Add activity_data.csv beside app.py or upload a compatible CSV in the sidebar.")
     st.stop()
 
-df = df.dropna(subset=required_columns).copy()
+try:
+    df = load_activity_data(data_source)
+except DataValidationError as exc:
+    st.error(f"Unable to load activity data: {exc}")
+    st.stop()
+
+dropped_rows = int(df.attrs.get("rows_dropped", 0))
+if dropped_rows:
+    st.warning(f"Skipped {dropped_rows} incomplete or non-numeric row(s) while loading the dataset.")
+
+st.caption(f"Data source: {source_name} · {len(df):,} valid event(s) · {df['user_id'].nunique():,} user(s)")
 
 # ---------------- SIDEBAR ----------------
 
@@ -85,87 +95,7 @@ show_injected = st.sidebar.checkbox(
 
 # ---------------- TRAIN ANOMALY MODEL ----------------
 
-features = [
-    "hour",
-    "files_accessed",
-    "data_downloaded_mb",
-    "failed_logins",
-    "login_attempts"
-]
-
-model = IsolationForest(
-    n_estimators=200,
-    contamination=contamination,
-    random_state=42
-)
-
-df["model_prediction"] = model.fit_predict(df[features])
-
-# Isolation Forest: -1 = anomaly, 1 = normal
-df["is_anomaly"] = df["model_prediction"] == -1
-
-df["anomaly_score"] = -model.score_samples(df[features])
-
-# =====================================================
-# USER-SPECIFIC BEHAVIORAL BASELINES
-# =====================================================
-
-baseline_features = [
-    "files_accessed",
-    "data_downloaded_mb",
-    "failed_logins",
-    "login_attempts"
-]
-
-# Calculate the 95th percentile for each user.
-for feature in baseline_features:
-    threshold_column = f"{feature}_user_threshold"
-
-    df[threshold_column] = (
-        df.groupby("user_id")[feature]
-        .transform(lambda values: values.quantile(0.95))
-    )
-
-# Identify activity exceeding individual user thresholds.
-df["unusual_user_download"] = (
-    df["data_downloaded_mb"]
-    > df["data_downloaded_mb_user_threshold"]
-)
-
-df["unusual_user_file_access"] = (
-    df["files_accessed"]
-    > df["files_accessed_user_threshold"]
-)
-
-df["unusual_user_failed_logins"] = (
-    df["failed_logins"]
-    > df["failed_logins_user_threshold"]
-)
-
-df["unusual_user_login_attempts"] = (
-    df["login_attempts"]
-    > df["login_attempts_user_threshold"]
-)
-
-# Count behavioral signals for each event.
-baseline_signals = [
-    "unusual_user_download",
-    "unusual_user_file_access",
-    "unusual_user_failed_logins",
-    "unusual_user_login_attempts"
-]
-
-df["baseline_signal_count"] = (
-    df[baseline_signals].astype(int).sum(axis=1)
-)
-
-# Flag events with at least two unusual signals.
-df["baseline_flag"] = df["baseline_signal_count"] >= 2
-
-# Combine model predictions with behavioral-baseline signals.
-df["investigation_flag"] = (
-    df["is_anomaly"] | df["baseline_flag"]
-)
+df = run_detection(df, contamination=contamination)
 
 # ---------------- BEHAVIORAL BASELINE VERIFICATION ----------------
 
@@ -197,14 +127,23 @@ with st.expander("🧠 Behavioral Baseline Verification", expanded=False):
 total_events = len(df)
 total_users = df["user_id"].nunique()
 detected = int(df["is_anomaly"].sum())
+baseline_detected = int(df["baseline_flag"].sum())
+investigation_count = int(df["investigation_flag"].sum())
 detection_rate = detected / total_events * 100 if total_events else 0
 
-c1, c2, c3, c4 = st.columns(4)
+c1, c2, c3, c4, c5 = st.columns(5)
 
 c1.metric("Total Events", f"{total_events:,}")
 c2.metric("Monitored Users", f"{total_users:,}")
-c3.metric("Model-Flagged Events", f"{detected:,}")
-c4.metric("Flagged Event Rate", f"{detection_rate:.1f}%")
+c3.metric("Model Anomalies", f"{detected:,}")
+c4.metric("Baseline Flags", f"{baseline_detected:,}")
+c5.metric("Investigation Queue", f"{investigation_count:,}")
+
+st.caption(
+    f"Isolation Forest flags {detection_rate:.1f}% of events at the selected "
+    "contamination setting. This is a model setting, not a measured real-world "
+    "incident rate."
+)
 
 st.divider()
 
@@ -337,31 +276,26 @@ if show_injected:
 
     actual = df["synthetic_label"].astype(int)
     predicted = df["is_anomaly"].astype(int)
+    metrics = evaluate_predictions(actual, predicted)
 
-    tp = int(((actual == 1) & (predicted == 1)).sum())
-    fp = int(((actual == 0) & (predicted == 1)).sum())
-    fn = int(((actual == 1) & (predicted == 0)).sum())
-    tn = int(((actual == 0) & (predicted == 0)).sum())
-
-    precision = tp / (tp + fp) if tp + fp else 0
-    recall = tp / (tp + fn) if tp + fn else 0
-    f1 = (
-        2 * precision * recall / (precision + recall)
-        if precision + recall else 0
-    )
-
-    a, b, c = st.columns(3)
-
-    a.metric("Precision", f"{precision:.1%}")
-    b.metric("Recall", f"{recall:.1%}")
-    c.metric("F1 Score", f"{f1:.1%}")
+    a, b, c, d = st.columns(4)
+    a.metric("Precision", f"{metrics['precision']:.1%}")
+    b.metric("Recall", f"{metrics['recall']:.1%}")
+    c.metric("F1 Score", f"{metrics['f1']:.1%}")
+    d.metric("Accuracy", f"{metrics['accuracy']:.1%}")
 
     st.write({
-        "True Positives": tp,
-        "False Positives": fp,
-        "False Negatives": fn,
-        "True Negatives": tn
+        "True Positives": metrics["true_positives"],
+        "False Positives": metrics["false_positives"],
+        "False Negatives": metrics["false_negatives"],
+        "True Negatives": metrics["true_negatives"],
+        "Specificity": f"{metrics['specificity']:.1%}",
     })
+
+    st.info(
+        "These scores evaluate this synthetic dataset only. They do not "
+        "estimate performance on live enterprise activity."
+    )
 
 # ---------------- EXPORT ----------------
 
