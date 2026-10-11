@@ -122,6 +122,44 @@ def run_detection(
     result["baseline_signal_count"] = result[signal_columns].astype(int).sum(axis=1)
     result["baseline_flag"] = result["baseline_signal_count"] >= 2
     result["investigation_flag"] = result["is_anomaly"] | result["baseline_flag"]
+
+    # Explain alert rows so investigators can understand why they were surfaced.
+    def explain_event(row: pd.Series) -> str:
+        reasons: list[str] = []
+        if bool(row["is_anomaly"]):
+            reasons.append(
+                "Isolation Forest identified an unusual combination of activity features."
+            )
+
+        details = [
+            ("unusual_user_download", "Data download", "data_downloaded_mb",
+             "data_downloaded_mb_user_threshold", "MB", 1),
+            ("unusual_user_file_access", "File access", "files_accessed",
+             "files_accessed_user_threshold", "files", 0),
+            ("unusual_user_failed_logins", "Failed logins", "failed_logins",
+             "failed_logins_user_threshold", "attempts", 0),
+            ("unusual_user_login_attempts", "Login attempts", "login_attempts",
+             "login_attempts_user_threshold", "attempts", 0),
+        ]
+        for signal, label, feature, threshold, unit, decimals in details:
+            if bool(row[signal]):
+                value = float(row[feature])
+                limit = float(row[threshold])
+                reasons.append(
+                    f"{label}: {value:.{decimals}f} {unit} exceeded this user's "
+                    f"95th-percentile baseline ({limit:.{decimals}f} {unit})."
+                )
+
+        if bool(row["baseline_flag"]):
+            reasons.append(
+                f"{int(row['baseline_signal_count'])} behavioral signals exceeded "
+                "user-specific thresholds."
+            )
+        if not reasons:
+            return "No model or behavioral-baseline alert for this event."
+        return " ".join(reasons)
+
+    result["alert_reason"] = result.apply(explain_event, axis=1)
     return result
 
 
