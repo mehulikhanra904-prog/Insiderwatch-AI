@@ -55,9 +55,13 @@ class DetectionTests(unittest.TestCase):
         result = run_detection(sample_frame(), contamination=0.03)
         for column in [
             "model_prediction", "is_anomaly", "anomaly_score",
+            "unusual_user_download", "unusual_user_file_access",
+            "unusual_user_failed_logins", "unusual_user_login_attempts",
             "baseline_signal_count", "baseline_flag", "investigation_flag",
+            "alert_reason",
         ]:
             self.assertIn(column, result.columns)
+        self.assertTrue(result["alert_reason"].map(lambda value: isinstance(value, str) and bool(value.strip())).all())
         self.assertTrue(np.isfinite(result["anomaly_score"]).all())
         self.assertTrue(result["investigation_flag"].equals(result["is_anomaly"] | result["baseline_flag"]))
 
