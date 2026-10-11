@@ -106,6 +106,7 @@ with st.expander("🧠 Behavioral Baseline Verification", expanded=False):
 
     baseline_columns = [
         "user_id",
+        "alert_reason",
         "unusual_user_download",
         "unusual_user_file_access",
         "unusual_user_failed_logins",
