@@ -102,10 +102,17 @@ def run_detection(
     result["is_anomaly"] = result["model_prediction"] == -1
     result["anomaly_score"] = -model.score_samples(result[FEATURES].astype(float))
 
+    # Keep stable, human-readable column names used by the dashboard.
+    signal_names = {
+        "files_accessed": "unusual_user_file_access",
+        "data_downloaded_mb": "unusual_user_download",
+        "failed_logins": "unusual_user_failed_logins",
+        "login_attempts": "unusual_user_login_attempts",
+    }
     signal_columns = []
     for feature in BASELINE_FEATURES:
         threshold = f"{feature}_user_threshold"
-        signal = f"unusual_user_{feature}"
+        signal = signal_names[feature]
         result[threshold] = result.groupby("user_id")[feature].transform(
             lambda values: values.quantile(0.95)
         )
