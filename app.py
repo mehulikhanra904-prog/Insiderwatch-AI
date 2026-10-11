@@ -41,11 +41,6 @@ st.caption("AI-Powered Insider Threat & Anomaly Detection")
 
 DATA_FILE = Path(__file__).parent / "activity_data.csv"
 
-if not DATA_FILE.exists():
-    st.error("activity_data.csv was not found in the project directory.")
-    st.info("Place activity_data.csv in the same folder as app.py.")
-    st.stop()
-
 uploaded_file = st.sidebar.file_uploader(
     "Try your own activity CSV (optional)",
     type=["csv"],
@@ -95,7 +90,11 @@ show_injected = st.sidebar.checkbox(
 
 # ---------------- TRAIN ANOMALY MODEL ----------------
 
-df = run_detection(df, contamination=contamination)
+try:
+    df = run_detection(df, contamination=contamination)
+except (DataValidationError, ValueError) as exc:
+    st.error(f"Unable to run anomaly detection: {exc}")
+    st.stop()
 
 # ---------------- BEHAVIORAL BASELINE VERIFICATION ----------------
 
