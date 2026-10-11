@@ -11,7 +11,7 @@ InsiderWatch AI combines an unsupervised Isolation Forest model with per-user be
 - Validates required columns, numeric values, hours, non-negative activity counts, and empty or malformed datasets.
 - Uses Isolation Forest to flag unusual activity.
 - Calculates per-user 95th-percentile thresholds for file access, download volume, failed logins, and login attempts.
-- Combines model anomalies with events exceeding at least two behavioral-baseline thresholds.
+- Combines model anomalies with events exceeding at least two behavioral-baseline thresholds, and explains alerts with per-user threshold comparisons.
 - Displays activity-by-hour and download-by-user charts, an anomaly scatter plot, filters, and a CSV export.
 - Reports precision, recall, F1, accuracy, specificity, and confusion counts against synthetic labels.
 - Keeps synthetic labels out of the model features to avoid evaluation-label leakage.
@@ -93,7 +93,8 @@ The default random seed makes model results repeatable. The contamination slider
 - [x] Per-user behavioral baselines
 - [x] Input validation and CSV upload
 - [x] Automated tests and continuous integration
-- [ ] Add time-window-aware baselines and explainable alert reasons
+- [x] Add explainable alert reasons with per-user threshold comparisons
+- [ ] Add time-window-aware baselines
 - [ ] Add an event-review workflow
 - [ ] Evaluate against representative, documented datasets before making real-world claims
 
