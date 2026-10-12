@@ -7,7 +7,7 @@ from fastapi.responses import JSONResponse
 from detection import DataValidationError, evaluate_predictions, load_activity_data, run_detection
 
 app = FastAPI(title="InsiderWatch AI API")
-ROOT = Path(__file__).resolve().parent.parent
+ROOT = Path(__file__).resolve().parent
 
 def safe(v):
     if isinstance(v, dict): return {str(k): safe(x) for k, x in v.items()}
