@@ -6,6 +6,12 @@ InsiderWatch AI combines an unsupervised Isolation Forest model with per-user be
 
 > **Important:** This is an educational demo, not a production security product. Its included activity data is synthetic. An anomaly is not proof of malicious behavior; every flag requires human review. Do not upload real employee, customer, or sensitive company logs.
 
+## 🚀 Live Demo
+
+**[Open InsiderWatch AI — Live App](https://mehulikhanra904-prog-insiderwatch-ai-app-69yag2.streamlit.app/)**
+
+[![Open in Streamlit](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://mehulikhanra904-prog-insiderwatch-ai-app-69yag2.streamlit.app/)
+
 ## Features
 
 - Validates required columns, numeric values, hours, non-negative activity counts, and empty or malformed datasets.
@@ -103,24 +109,23 @@ The default random seed makes model results repeatable. The contamination slider
 Use only synthetic or explicitly authorized data. Do not use this demo to make employment, disciplinary, or other high-impact decisions. Anomaly detection produces leads for investigation, not proof of intent.
 
 
-## ☁️ Deploy to Streamlit Community Cloud
+## ☁️ Deployment
 
-**Live app:** Not deployed yet. Deploy this repository in one click after signing in to Streamlit Community Cloud:
+InsiderWatch AI is hosted on **Streamlit Community Cloud**.
+
+- **Live application:** https://mehulikhanra904-prog-insiderwatch-ai-app-69yag2.streamlit.app/
+- **Platform:** Streamlit Community Cloud
+- **Entry point:** `app.py`
+- **Source:** This GitHub repository's `main` branch
 
 [![Deploy to Streamlit](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://share.streamlit.io/deploy?repository=mehulikhanra904-prog/Insiderwatch-AI&branch=main&mainModule=app.py)
 
-1. Open [Streamlit Community Cloud](https://share.streamlit.io/) and sign in with GitHub.
-2. Select **New app** (or use the deploy button above).
-3. Repository: `mehulikhanra904-prog/Insiderwatch-AI`; branch: `main`; entry point: `app.py`.
-4. Deploy. Streamlit installs `requirements.txt` automatically.
-5. Once deployment finishes, copy the generated `https://....streamlit.app` URL into the **Live App** link above and your portfolio.
-
 ### Cloud deployment notes
 
-- This is a Streamlit app; no separate frontend/backend service is required.
-- The included CSV is synthetic demo data and is loaded relative to `app.py`.
-- The app does not require API keys or secrets.
-- Community Cloud may sleep when inactive; first load can take a little time.
-- Keep the dataset synthetic and do not upload confidential logs.
+- Streamlit installs dependencies from `requirements.txt`.
+- The included CSV contains synthetic demo data and is loaded relative to `app.py`.
+- No API keys or secrets are required for the current demo.
+- Community Cloud may sleep when inactive; the first load after inactivity can take a little time.
+- Keep all data synthetic or explicitly authorized. Never upload confidential logs.
 
-> I can't create the hosted app or claim a live URL from this repository alone: the final publish step requires authorization in your Streamlit Cloud account. The deploy button is ready to use.
+> **Responsible use:** This is an educational demo, not a production security product. An anomaly is not proof of malicious behavior and must not be used alone for employment, disciplinary, or other high-impact decisions.
