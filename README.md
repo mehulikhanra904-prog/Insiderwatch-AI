@@ -101,3 +101,26 @@ The default random seed makes model results repeatable. The contamination slider
 ## Responsible use
 
 Use only synthetic or explicitly authorized data. Do not use this demo to make employment, disciplinary, or other high-impact decisions. Anomaly detection produces leads for investigation, not proof of intent.
+
+
+## ☁️ Deploy to Streamlit Community Cloud
+
+**Live app:** Not deployed yet. Deploy this repository in one click after signing in to Streamlit Community Cloud:
+
+[![Deploy to Streamlit](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://share.streamlit.io/deploy?repository=mehulikhanra904-prog/Insiderwatch-AI&branch=main&mainModule=app.py)
+
+1. Open [Streamlit Community Cloud](https://share.streamlit.io/) and sign in with GitHub.
+2. Select **New app** (or use the deploy button above).
+3. Repository: `mehulikhanra904-prog/Insiderwatch-AI`; branch: `main`; entry point: `app.py`.
+4. Deploy. Streamlit installs `requirements.txt` automatically.
+5. Once deployment finishes, copy the generated `https://....streamlit.app` URL into the **Live App** link above and your portfolio.
+
+### Cloud deployment notes
+
+- This is a Streamlit app; no separate frontend/backend service is required.
+- The included CSV is synthetic demo data and is loaded relative to `app.py`.
+- The app does not require API keys or secrets.
+- Community Cloud may sleep when inactive; first load can take a little time.
+- Keep the dataset synthetic and do not upload confidential logs.
+
+> I can't create the hosted app or claim a live URL from this repository alone: the final publish step requires authorization in your Streamlit Cloud account. The deploy button is ready to use.
